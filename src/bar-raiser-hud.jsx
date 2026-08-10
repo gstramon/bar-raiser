@@ -389,7 +389,7 @@ const npcHasAvailableInteractions = (npcName, history={}) => {
   return hasFirst || hasRandom;
 };
 
-const BONUS_INFO={tips:{icon:"\uD83D\uDCB0",label:"Probe for Tips",desc:"Try to extract a better tip from the current customer."},hermes:{icon:"\uD83D\uDCE6",label:"Send Hermes",desc:"Hermes runs an errand — clears complication and restocks on Good+."},tidy:{icon:"\uD83E\uDDF9",label:"Tidy Up",desc:"Lower odds of a new complication."},freeze:{icon:"\uD83E\uDDCA",label:"Freeze the Room",desc:"Freeze customer moods on Good+."}};
+const BONUS_INFO={tips:{icon:"\uD83D\uDCB0",label:"Probe for Tips",desc:"Try to extract a better tip from the current customer."},hermes:{icon:"\uD83D\uDCE6",label:"Send Hermes",desc:"Hermes runs an errand — restock the bar on good roll."},tidy:{icon:"\uD83E\uDDF9",label:"Tidy Up",desc:"Lower odds of a new complication."},freeze:{icon:"\uD83E\uDDCA",label:"Freeze the Room",desc:"Freeze customer moods on Good+."}};
 const D20_BANDS=[{min:1,max:5,label:"Bad",color:"#C0524A"},{min:6,max:12,label:"Neutral",color:"#8A91B0"},{min:13,max:18,label:"Good",color:"#5BA88A"},{min:19,max:20,label:"Great",color:"#E8A84C"}];
 const OUTCOME_MAP={critical:{label:"Critical! \u2605",color:"#E8A84C",icon:"\u2605",note:"Instant Care slot unlocked"},success_chill:{label:"Success \u00B7 Chill",color:"#5BA88A",icon:"\u2713",note:"Full outcome + +1 Care progress"},success_stress:{label:"Success \u00B7 Stress",color:"#5B9BB5",icon:"\u2713",note:"Full outcome, no bonus"},fail_chill:{label:"Failure \u00B7 Chill",color:"#E8A84C",icon:"\u2717",note:"Miss — but +1 Care progress"},fail_stress:{label:"Failure \u00B7 Stress",color:"#C0524A",icon:"\u2717",note:"Hard fail — \u22121 Care progress"}};
 
@@ -629,7 +629,7 @@ function AssessPhase({customers,npcs,relationships,complication,moodFrozen,onNex
 function DecidePhase({selAction,selAction2,selBonus,onSelAction,onSelAction2,onSelBonus,complication,customers,turn,maxTurns,onNext,onBack,extraActions,noBonusAction,isOnboarding}){
   const noCust=customers.length===0,noComp=!complication;
   const ACTIONS=[{key:"npc",icon:"🗣",label:"Interact with Friend",desc:"Spend time with a friend — gain traits or relationship points"},{key:"serve",icon:"🍹",label:"Serve Bar",desc:"Serve the customer queue",disabled:noCust||isOnboarding},{key:"comp",icon:"⚠",label:"Deal with Complication",desc:"Resolve the active complication",disabled:noComp||isOnboarding}];
-  const BONUS=[{key:"tips",icon:"💰",label:"Probe for Tips",desc:"Increase tip potential"},{key:"hermes",icon:"📦",label:"Send Hermes",desc:"Pre-empt complication + restock on Good+"},{key:"tidy",icon:"🧹",label:"Tidy Up",desc:"Lower odds of new complication"},{key:"freeze",icon:"🧊",label:"Freeze the Room",desc:"Freeze customer moods on Good+"}];
+  const BONUS=[{key:"tips",icon:"💰",label:"Probe for Tips",desc:"Increase tip potential"},{key:"hermes",icon:"📦",label:"Send Hermes",desc:"Restock ingredients"},{key:"tidy",icon:"🧹",label:"Tidy Up",desc:"Lower odds of new complication"},{key:"freeze",icon:"🧊",label:"Freeze the Room",desc:"Freeze customer moods on Good+"}];
   const Tile=({item,sel,onSel,sc})=>(<div onClick={()=>!item.disabled&&onSel(item.key)} style={{background:sel?sc+"14":"#0A0C18",border:`1px solid ${sel?sc+"70":item.disabled?"#1E2338":"#252A45"}`,borderRadius:8,padding:"10px 12px",cursor:item.disabled?"default":"pointer",opacity:item.disabled?.35:1,marginBottom:7}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}><div style={{display:"flex",gap:7,alignItems:"center"}}><span style={{fontSize:14}}>{item.icon}</span><span style={{fontSize:11,fontWeight:700,color:sel?sc:item.disabled?"#5C6380":"#F0EBE1"}}>{item.label}</span></div>{sel&&<span style={{background:sc,color:"#0C0E1A",fontSize:8,fontWeight:700,letterSpacing:"0.1em",padding:"2px 6px",borderRadius:3}}>✓</span>}{item.disabled&&<span style={{fontSize:8,color:"#5C6380"}}>{item.key==="serve"?"no customers":"n/a"}</span>}</div>
     <div style={{fontSize:10,color:"#5C6380",lineHeight:1.45}}>{item.desc}</div>
@@ -901,7 +901,7 @@ function ResolveNPC({npcs,relationships,modifier,traits,onTraitGain,onRelGain,on
 
 function ResolveComplication({complication,modifier,traits,onComplete,onBack,onDiceResult,onRoll,shiftEffects={},pendingEffects={}}){
   const [selTrait,setSelTrait]=useState(null),[passiveMod,setPassiveMod]=useState(0),[rolled,setRolled]=useState(false),[rollResult,setRollResult]=useState(null);
-  const APPROACHES=[{trait:"charismatic",label:"Smooth it over with charm",desc:"Defuse the tension — wit and warmth can turn this around."},{trait:"direct",label:"Address it head-on",desc:"Take control. State clearly what needs to happen right now."},{trait:"empathetic",label:"De-escalate with understanding",desc:"Listen first. Show you understand what's at stake."}];
+  const APPROACHES=[{trait:"charismatic",label:"Charisma and charm",desc:"Solves issues by persuading counterparty or rallying people to help."},{trait:"direct",label:"Straight shooter",desc:"Solves issues with pragmatism, negotiating or trying the obvious."},{trait:"empathetic",label:"Empathy and Intuition",desc:"Solves issues by reading the situation and finding an opening."}];
   const dcEscalation=(complication?.turnsActive||0)*2;
   const baseDC=(complication?.dc||DC.COMPLICATION)+dcEscalation;
   const effDC=selTrait&&complication?.vulnerability===selTrait?(complication.dcOnVuln+dcEscalation):baseDC;
@@ -976,14 +976,109 @@ function ShiftEnd({day,cashThisShift,satisfaction,isLastDay,cash,goal,onContinue
       <div style={{fontSize:11,color:"#5C6380",marginTop:2}}>₡{cash.toLocaleString()} / ₡{goal.toLocaleString()} goal</div>
     </div>
     <div style={{fontSize:11,color:"#5BA88A",fontWeight:600}}>Satisfaction {satisfaction}%</div>
-    {!isLastDay&&<div style={{background:"#5B9BB512",border:"1px solid #5B9BB540",borderRadius:8,padding:"11px 20px",maxWidth:360,fontSize:11,color:"#5C6380",fontStyle:"italic"}}>Story beat — narrator takes over</div>}
+    {!isLastDay&&<div style={{background:"#5B9BB512",border:"1px solid #5B9BB540",borderRadius:8,padding:"11px 20px",maxWidth:360,fontSize:11,color:"#5C6380",fontStyle:"italic"}}>In game, after every shift there will be a key story beat.</div>}
     <Btn onClick={onContinue} color="#E8A84C">{isLastDay?"Play Again":`Begin Day ${day+1} →`}</Btn>
+  </div>);
+}
+
+// ── Game Instructions overlay ──────────────────────────────────
+function InstructionsView({onClose,dayGoal,cashGoal}){
+  const [open,setOpen]=useState(new Set([0]));
+  const toggle=i=>setOpen(prev=>{const n=new Set(prev);n.has(i)?n.delete(i):n.add(i);return n;});
+  const C2={bg:"#0C0E1A",card:"#131629",border:"#1E2338",gold:"#E8A84C",green:"#5BA88A",red:"#C0524A",blue:"#5B9BB5",muted:"#5C6380",text:"#F0EBE1",sub:"#8A91B0"};
+  const P=({children})=>(<p style={{fontSize:12,color:C2.sub,lineHeight:1.75,marginBottom:10}}>{children}</p>);
+  const B=({children})=>(<strong style={{color:C2.text,fontWeight:700}}>{children}</strong>);
+  const Tag=({c,children})=>(<span style={{background:c+"20",border:`1px solid ${c}50`,borderRadius:4,padding:"1px 7px",fontSize:10,fontWeight:700,color:c,marginRight:5,whiteSpace:"nowrap"}}>{children}</span>);
+  const sections=[
+    {title:"1. Start Here",content:(<>
+      <P>The landlord is putting pressure to close down The Arcadian! To keep it open, you have <B>{dayGoal} days</B> to earn at least <B>₡{cashGoal.toLocaleString()}</B>.</P>
+      <P>Each day is made of <B>turns</B> — at least 3 per day, though you can increase this by spending Care Points. On each turn you can take <B>one action</B> and <B>one bonus action</B>.</P>
+      <P>To play a turn: <B>Assess</B> what's happening in the bar, then <B>Decide</B> how to spend your action and bonus action, and <B>Resolve</B> them with dice rolls.</P>
+    </>)},
+    {title:"2. Actions and Bonus Actions",content:(<>
+      <P>Your main action each turn can be used to:</P>
+      <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:12}}>
+        {[["🗣","Interact with a Friend","Talk to a regular — earn Trait points, relationship bonuses, and Cards.","#5B9BB5"],["🍹","Serve the Bar","Roll dice to serve customers in the queue and earn tips.","#E8A84C"],["⚠","Deal with a Complication","Tackle something going wrong in the bar before it gets worse.","#C0524A"]].map(([i,l,d,c])=>(<div key={l} style={{background:C2.card,border:`1px solid ${C2.border}`,borderRadius:8,padding:"10px 13px",display:"flex",gap:11,alignItems:"flex-start"}}><span style={{fontSize:16,marginTop:1}}>{i}</span><div><div style={{fontSize:12,fontWeight:700,color:c,marginBottom:3}}>{l}</div><div style={{fontSize:11,color:C2.sub,lineHeight:1.6}}>{d}</div></div></div>))}
+      </div>
+      <P>Bonus actions let you do a little extra on that turn — earn some quick cash, restock the bar, prevent customers from leaving, or reduce the odds of a complication appearing.</P>
+    </>)},
+    {title:"3. Care Pool",content:(<>
+      <P>Represents your emotional energy to run the bar. It has two parts: <B>Slots</B> (your energy today) and <B>Care Points</B> (energy you're building for tomorrow).</P>
+      <P><B>Slots (1–5):</B> You spend slots by playing Cards — special abilities that grant boons for a turn. If you run out of slots, you can't play cards.</P>
+      <P><B>Care Points (0–20):</B> Every 5 points earns you one extra slot the next day. Finish a day with 10 points → start the next day with 3 slots total. Points carry over between shifts.</P>
+      <div style={{background:C2.card,border:`1px solid ${C2.border}`,borderRadius:8,padding:"11px 14px",marginBottom:12}}>
+        <div style={{fontSize:10,color:C2.muted,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:8}}>Care Point milestones</div>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>{[[5,2],[10,3],[15,4],[20,5]].map(([pts,slots])=>(<div key={pts} style={{background:"#0C0E1A",border:`1px solid ${C2.gold}40`,borderRadius:6,padding:"5px 12px",textAlign:"center"}}><div style={{fontSize:15,fontWeight:800,color:C2.gold}}>{pts}</div><div style={{fontSize:9,color:C2.muted}}>pts → {slots} slots</div></div>))}</div>
+      </div>
+      <P><Tag c={C2.green}>+2 pts</Tag> Interacting with a friend — always.</P>
+      <P><Tag c={C2.red}>−1 pt</Tag> Serving the bar or dealing with a complication — always.</P>
+    </>)},
+    {title:"4. Traits",content:(<>
+      <P>Your three traits — <Tag c={C2.blue}>Charismatic</Tag><Tag c={C2.gold}>Direct</Tag><Tag c={C2.green}>Empathetic</Tag> — reflect how you deal with people and situations.</P>
+      <P>You earn a trait point every time you choose that trait in a conversation, and also every time you succeed on a <B>Skill Check</B>.</P>
+      <P><B>Skill Checks</B> happen when talking to friends or dealing with complications. You pick an approach (matching one of your traits), roll the dice, and aim to beat the difficulty. Higher trait scores give you better odds.</P>
+    </>)},
+    {title:"5. Dice Rolls, Chill and Stress",content:(<>
+      <P>Most actions are resolved by rolling <B>two d12 dice</B> — a <B>Chill die</B> and a <B>Stress die</B>. Add them together and try to beat the difficulty number.</P>
+      <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:12}}>
+        {[[C2.green,"Chill > Stress","+1 Care Point — the activity felt good.","🌙"],[C2.red,"Stress > Chill","−1 Care Point — the activity was draining.","🔥"],[C2.gold,"Both dice match","Critical! +5 Care Points and immediately unlock an extra Care Slot.","⚡"]].map(([c,h,d,i])=>(<div key={h} style={{background:C2.card,border:`1px solid ${c}40`,borderRadius:8,padding:"10px 13px",display:"flex",gap:10,alignItems:"flex-start"}}><span style={{fontSize:16}}>{i}</span><div><div style={{fontSize:12,fontWeight:700,color:c,marginBottom:2}}>{h}</div><div style={{fontSize:11,color:C2.sub,lineHeight:1.6}}>{d}</div></div></div>))}
+      </div>
+      <P>The dice result only determines Care Points — the <B>success or failure</B> of the action depends on beating the difficulty number with the combined total.</P>
+    </>)},
+    {title:"6. Cards",content:(<>
+      <P>Cards are special abilities earned by talking to friends or succeeding on Skill Checks. Click a card during your turn (before rolling) to activate it — it costs <B>1 Care Slot</B>.</P>
+      <P>Cards stay in your deck permanently. After use they're marked as spent for that day, then become available again the next shift. When you have more cards than your hand size (6), each shift's hand is drawn randomly.</P>
+      <P>Cards can do things like give you a roll modifier, grant advantage, instantly solve a complication, or even give you an extra action for the turn.</P>
+    </>)},
+    {title:"7. Spend Care",content:(<>
+      <P>You can spend Care Points to gain immediate benefits — think of it as doing a little extra today at the cost of tiring yourself for tomorrow.</P>
+      <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:12}}>
+        {[["★ Free","First spend of the day — no cost."],["−5 pts","Redraw 2 discarded cards"],["−5 pts","+1 extra turn today (max 5 turns/day)"],["−5 pts","Activate an empty Care Slot"]].map(([cost,desc])=>(<div key={desc} style={{display:"flex",gap:12,alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${C2.border}`}}><div style={{background:cost==="★ Free"?C2.green+"20":"#C0524A20",border:`1px solid ${cost==="★ Free"?C2.green+"50":"#C0524A50"}`,borderRadius:4,padding:"2px 8px",fontSize:9,fontWeight:700,color:cost==="★ Free"?C2.green:C2.red,whiteSpace:"nowrap",minWidth:60,textAlign:"center"}}>{cost}</div><div style={{fontSize:11,color:C2.sub}}>{desc}</div></div>))}
+      </div>
+      <P>The first Spend Care action each day is always free — use it wisely.</P>
+    </>)},
+    {title:"8. Customer Mood and Satisfaction",content:(<>
+      <P>Each customer has a <B>mood</B> (1–3). After every turn, their mood drops by 1. When mood hits 0, they leave without being served — which hurts your satisfaction score. Active complications also drop customer mood by 1 per turn.</P>
+      <P><B>Satisfaction</B> works like a reputation score. The higher it is, the more customers visit the bar each day. Serving customers well raises it; serving bad drinks or leaving customers unserved lowers it.</P>
+      <P>Think of it as the long game — early shifts with poor service compound into quieter bars later in the week.</P>
+    </>)},
+    {title:"9. Serving the Bar",content:(<>
+      <P>Each customer will ask for a specific drink. You choose up to <B>6 ingredients</B> from the full list to serve them.</P>
+      <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:12}}>
+        {[[C2.green,"Correct recipe","+1 to your roll modifier — easier to satisfy them."],[C2.gold,"Different drink (e.g. a wine when they ordered a cocktail)","−1 modifier — a harder sell, but it might land."],[C2.red,"Random combination that matches no recipe","−1 modifier + roll with disadvantage."]].map(([c,h,d])=>(<div key={h} style={{background:C2.card,border:`1px solid ${c}40`,borderRadius:7,padding:"9px 13px"}}><div style={{fontSize:11,fontWeight:700,color:c,marginBottom:3}}>{h}</div><div style={{fontSize:10,color:C2.sub,lineHeight:1.6}}>{d}</div></div>))}
+      </div>
+      <P>If you're out of stock for a requested drink, you can always serve an alternative. Just know the customer might not be thrilled about it.</P>
+    </>)},
+  ];
+  return(<div style={{position:"fixed",inset:0,background:"#0C0E1A",zIndex:200,overflowY:"auto",fontFamily:"'Space Grotesk',system-ui,sans-serif"}}>
+    <div style={{maxWidth:720,margin:"0 auto",padding:"24px 20px 48px"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:28}}>
+        <div>
+          <div style={{fontSize:10,color:C2.gold,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:4}}>Bar Raiser · Tequila Moonrise</div>
+          <div style={{fontSize:26,fontWeight:800,color:C2.text}}>How to Play</div>
+          <div style={{fontSize:12,color:C2.muted,marginTop:4}}>Click any section to expand it.</div>
+        </div>
+        <button onClick={onClose} style={{background:"transparent",border:`1px solid ${C2.border}`,color:C2.sub,borderRadius:8,padding:"8px 18px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",flexShrink:0,marginTop:4}}>✕ Close</button>
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:6}}>
+        {sections.map((s,i)=>(
+          <div key={i} style={{border:`1px solid ${open.has(i)?"#E8A84C40":C2.border}`,borderRadius:10,overflow:"hidden",transition:"border-color .2s"}}>
+            <div onClick={()=>toggle(i)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 18px",cursor:"pointer",background:open.has(i)?"#E8A84C08":"#131629",userSelect:"none"}}>
+              <span style={{fontSize:14,fontWeight:700,color:open.has(i)?C2.gold:C2.text}}>{s.title}</span>
+              <span style={{fontSize:16,color:open.has(i)?C2.gold:C2.muted,display:"inline-block",transform:open.has(i)?"rotate(180deg)":"rotate(0deg)",transition:"transform .2s"}}>▾</span>
+            </div>
+            {open.has(i)&&<div style={{padding:"4px 18px 18px",borderTop:`1px solid ${C2.border}`}}>{s.content}</div>}
+          </div>
+        ))}
+      </div>
+    </div>
   </div>);
 }
 
 export default function BarRaiserHUD(){
   const [phase,setPhase]=useState("assess"),[day,setDay]=useState(1),[turn,setTurn]=useState(1),[maxTurns,setMaxTurns]=useState(3);
   const [cashGoal,setCashGoal]=useState(10000),[compRate,setCompRate]=useState(0.66);
+  const [showInstructions,setShowInstructions]=useState(false);
   const [satGain,setSatGain]=useState(3),[satLoss,setSatLoss]=useState(2);
   const [satServeMod,setSatServeMod]=useState(1),[satCompDrain,setSatCompDrain]=useState(5);
   const [satEndCompPenalty,setSatEndCompPenalty]=useState(5),[satFloor,setSatFloor]=useState(10);
@@ -1311,7 +1406,12 @@ export default function BarRaiserHUD(){
   return(<div style={{fontFamily:"'Space Grotesk',system-ui,sans-serif",background:"#0C0E1A",minHeight:"100vh",padding:16,color:"#F0EBE1",boxSizing:"border-box"}}>
     <style>{`@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');*{box-sizing:border-box;}button{font-family:inherit;}`}</style>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,paddingBottom:14,borderBottom:"1px solid #1E2338"}}>
-      <div style={{display:"flex",alignItems:"baseline",gap:10}}><div style={{fontSize:18,fontWeight:700,color:"#E8A84C"}}>THE ARCADIAN</div><div style={{fontSize:11,color:"#5C6380"}}>Bar Raiser · Playtest</div></div>
+      <div style={{display:"flex",alignItems:"center",gap:14}}>
+        <div style={{display:"flex",alignItems:"baseline",gap:10}}><div style={{fontSize:18,fontWeight:700,color:"#E8A84C"}}>THE ARCADIAN</div><div style={{fontSize:11,color:"#5C6380"}}>Bar Raiser · Playtest</div></div>
+        <button onClick={()=>setShowInstructions(true)} style={{display:"flex",alignItems:"center",gap:5,background:"transparent",border:"1px solid #1E2338",borderRadius:6,padding:"4px 10px",fontSize:10,fontWeight:700,color:"#5C6380",cursor:"pointer",fontFamily:"inherit",letterSpacing:"0.04em"}}>
+          <span style={{fontSize:13,fontWeight:800}}>?</span> Game Instructions
+        </button>
+      </div>
       <div style={{display:"flex",gap:16,alignItems:"center"}}>
         <div style={{display:"flex",gap:12,alignItems:"center",paddingRight:16,borderRight:"1px solid #1E2338"}}>
           {TRAIT_CFG.map(({key,label,color})=>(<div key={key} style={{textAlign:"center"}}><div style={{fontSize:8,color:"#5C6380",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:2}}>{label}</div><div style={{fontSize:18,fontWeight:700,color}}>{traits[key]}</div></div>))}
@@ -1341,5 +1441,6 @@ export default function BarRaiserHUD(){
         </div>)}
       </div>
     </div>)}
+    {showInstructions&&<InstructionsView onClose={()=>setShowInstructions(false)} dayGoal={DAY_GOAL} cashGoal={cashGoal}/>}
   </div>);
 }
